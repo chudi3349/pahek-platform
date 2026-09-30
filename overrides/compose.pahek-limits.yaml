@@ -1,0 +1,31 @@
+services:
+  backend:
+    mem_limit: 1200m
+  frontend:
+    mem_limit: 300m
+    ports:
+      - "127.0.0.1:8080:8080"
+  websocket:
+    mem_limit: 200m
+  queue-short:
+    mem_limit: 300m
+  queue-long:
+    mem_limit: 300m
+  scheduler:
+    mem_limit: 200m
+  configurator:
+    mem_limit: 200m
+  db:
+    mem_limit: 1800m
+    # Replaces the command list in compose.mariadb.yaml, so its three flags are repeated here.
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --innodb-buffer-pool-size=1G
+  redis-cache:
+    mem_limit: 300m
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+  redis-queue:
+    # No maxmemory/eviction: evicting from the job queue would silently drop background jobs.
+    mem_limit: 300m

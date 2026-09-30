@@ -1,0 +1,6 @@
+# Build-time copy of apps.json with access tokens embedded in the URLs. Never commit.
+apps.build.json
+.env
+.env.*
+*.pem
+*.key
