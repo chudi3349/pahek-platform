@@ -16,7 +16,16 @@ Warning sign: swap in heavy use (`free -h`). Swap is a shock absorber, not capac
 
 ## Backups
 
-**Target:** daily full backup (database + files), 30 days retained, copied to storage registered to PAHEK, report after each run. *Not yet in place — scheduled for build weeks 3–4. Until then there is no off-server copy.*
+**Target:** daily full backup (database + files), 30 days retained, copied to storage registered to PAHEK, report after each run.
+
+**Live since 2026-10-21:** `overrides/compose.backup-cron.yaml` adds an Ofelia-scheduled `cron` service running two jobs against the `scheduler` container:
+
+- `datecron` — `bench --site all backup --with-files`, daily at 02:00 server time (`BACKUP_CRONSTRING` in `.env` overrides the schedule if it ever needs to change)
+- `pruneold` — deletes backup files older than 30 days, daily at 03:00 (an hour after the backup, so it never races a run still in progress)
+
+Add `-f overrides/compose.backup-cron.yaml` to every `up -d` from now on (DEPLOY.md's standard command needs this fifth file). Confirm it's running: `docker logs pahek-cron-1` should show both jobs registered with their schedules.
+
+**Still open:** off-server copy. A backup still only exists on the server itself until Charles opens a Hetzner Storage Box (or equivalent) in PAHEK's name — see `sop/client/pahek-phase1-build-week1-backups-2026-10-21` for exactly what needs wiring in once that account exists (an `rclone`/`restic` sync job, same cron pattern, pushing the `private/backups/` directory off-server). **No "confirmation after each run" notification either** — same blocker as the enquiry form's email notification: no Email Account/Zoho SMTP is configured on this site at all yet.
 
 Manual backup:
 
@@ -24,7 +33,7 @@ Manual backup:
 $DC exec backend bench --site $SITE backup --with-files
 ```
 
-Files land in the `sites` volume under `<site>/private/backups/`.
+Files land in the `sites` volume under `<site>/private/backups/` — this is a named Docker volume (`VOLUME` in the Containerfile), so it survives container recreates and image rebuilds.
 
 ## Restore
 
@@ -50,3 +59,4 @@ Certbot on the host renews automatically (`systemctl status certbot.timer`). Che
 | Memory limits missing after a restart | `up` was run without all four `-f` files |
 | Background jobs vanish | Someone set eviction on `redis-queue`. It must never have `maxmemory-policy` |
 | `db` restarts in a loop after an override change | Bad MariaDB flag in `compose.pahek-limits.yaml` `command:`. `$DC logs db`, fix, `$DC up -d` |
+| Disk filling up over time | `--no-cache` builds still *write* BuildKit cache even though they don't read it — it grows unbounded across repeated rebuilds (hit 86GB / 80% disk by 2026-10-21, 12 rebuilds in). Check with `docker system df`; clear with `docker builder prune -f`. Also remove old image tags you're not keeping as a rollback point (`docker images \| grep pahek-erpnext`, `docker rmi <tag>`) — each one is 4GB+. Do this check after every few rebuilds, not just when disk alerts fire. |

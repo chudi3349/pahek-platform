@@ -1,0 +1,22 @@
+services:
+  cron:
+    image: mcuadros/ofelia:latest
+    depends_on:
+      - scheduler
+    command: daemon --docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  scheduler:
+    labels:
+      ofelia.enabled: "true"
+      # Daily full backup (database + public + private files) at 02:00 server time.
+      # Overridable via BACKUP_CRONSTRING in .env if the schedule ever needs to change.
+      ofelia.job-exec.datecron.schedule: "${BACKUP_CRONSTRING:-0 2 * * *}"
+      ofelia.job-exec.datecron.command: "bench --site all backup --with-files"
+      ofelia.job-exec.datecron.user: "frappe"
+      # 30-day local retention: deletes backup files older than 30 days, 1h after the
+      # nightly backup so it never races a run still in progress.
+      ofelia.job-exec.pruneold.schedule: "0 3 * * *"
+      ofelia.job-exec.pruneold.command: "find /home/frappe/frappe-bench/sites/pahek.ejitech.life/private/backups -type f -mtime +30 -delete"
+      ofelia.job-exec.pruneold.user: "frappe"

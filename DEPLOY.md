@@ -9,11 +9,12 @@ DC="docker compose --project-name pahek --env-file .env \
   -f compose.yaml \
   -f overrides/compose.mariadb.yaml \
   -f overrides/compose.redis.yaml \
-  -f overrides/compose.pahek-limits.yaml"
+  -f overrides/compose.pahek-limits.yaml \
+  -f overrides/compose.backup-cron.yaml"
 SITE=pahek.ejitech.life
 ```
 
-Always pass all four `-f` files to `up`. Running `up` with fewer files silently drops the memory limits and the localhost-only port binding.
+Always pass all five `-f` files to `up`. Running `up` with fewer files silently drops the memory limits, the localhost-only port binding, or (since 2026-10-21) the nightly backup job.
 
 ## 1. Back up first
 
